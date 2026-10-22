@@ -1,0 +1,30 @@
+# Copy to config.yaml (gitignored) and fill in.
+nvr:
+  host: 213.8.48.134
+  http_port: 90          # CGI (sdk.cgi)
+  rtsp_port: 1554        # externally reachable RTSP port
+  username: admin
+  password: CHANGE_ME
+  sub_path_template: "ch_4{channel:02d}"   # channel is 1-based; ch_404 = channel 4 sub stream
+
+proxy:
+  bind_host: 0.0.0.0
+  advertise_host: null   # auto-detected when null
+  rtsp_port: 8554        # shared RTSP server; mounts are /cam<channel>
+  http_base_port: 8100   # channel N -> http_base_port + N
+  username: null         # set both to require auth on ONVIF/RTSP
+  password: null
+  transcode_to_h264: false
+
+events:
+  poll_interval_s: 1.0
+
+discovery:
+  ws_discovery: true     # set false to stay off the LAN multicast group
+  cache_file: channels.cache.json
+
+# Optional per-channel overrides (1-based channel numbers)
+channels:
+  exclude: []
+  overrides: {}
+  #  4: { codec: h265, path: ch_404 }

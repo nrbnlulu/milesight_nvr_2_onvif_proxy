@@ -1,0 +1,56 @@
+{# ONVIF Media2 (ver20): proper H264/H265 advertising. #}
+{% macro source_config(cam) %}
+<tt:Name>VideoSourceConfig{{ cam.number }}</tt:Name>
+<tt:UseCount>1</tt:UseCount>
+<tt:SourceToken>{{ cam.source_token }}</tt:SourceToken>
+<tt:Bounds x="0" y="0" width="{{ cam.stream.size[0] }}" height="{{ cam.stream.size[1] }}"/>
+{% endmacro %}
+
+{% macro encoder_config(cam) %}
+<tt:Name>VideoEncoderConfig{{ cam.number }}</tt:Name>
+<tt:UseCount>1</tt:UseCount>
+<tt:Encoding>{{ "H265" if cam.codec == "h265" else "H264" }}</tt:Encoding>
+<tt:Resolution><tt:Width>{{ cam.stream.size[0] }}</tt:Width><tt:Height>{{ cam.stream.size[1] }}</tt:Height></tt:Resolution>
+<tt:RateControl><tt:FrameRateLimit>{{ cam.stream.fps | round | int }}</tt:FrameRateLimit><tt:BitrateLimit>512</tt:BitrateLimit></tt:RateControl>
+<tt:Multicast><tt:Address><tt:Type>IPv4</tt:Type><tt:IPv4Address>0.0.0.0</tt:IPv4Address></tt:Address><tt:Port>0</tt:Port><tt:TTL>1</tt:TTL><tt:AutoStart>false</tt:AutoStart></tt:Multicast>
+<tt:Quality>5</tt:Quality>
+{% endmacro %}
+
+{% macro get_profiles(cam, with_configs) %}
+<tr2:GetProfilesResponse>
+  <tr2:Profiles token="{{ cam.profile_token }}" fixed="true">
+    <tr2:Name>{{ cam.name }}</tr2:Name>
+    {% if with_configs %}
+    <tr2:Configurations>
+      <tr2:VideoSource token="vsc{{ cam.number }}">{{ source_config(cam) }}</tr2:VideoSource>
+      <tr2:VideoEncoder token="vec{{ cam.number }}" GovLength="30">{{ encoder_config(cam) }}</tr2:VideoEncoder>
+    </tr2:Configurations>
+    {% endif %}
+  </tr2:Profiles>
+</tr2:GetProfilesResponse>
+{% endmacro %}
+
+{% macro get_video_source_configurations(cam) %}
+<tr2:GetVideoSourceConfigurationsResponse>
+  <tr2:Configurations token="vsc{{ cam.number }}">{{ source_config(cam) }}</tr2:Configurations>
+</tr2:GetVideoSourceConfigurationsResponse>
+{% endmacro %}
+
+{% macro get_video_encoder_configurations(cam) %}
+<tr2:GetVideoEncoderConfigurationsResponse>
+  <tr2:Configurations token="vec{{ cam.number }}" GovLength="30">{{ encoder_config(cam) }}</tr2:Configurations>
+</tr2:GetVideoEncoderConfigurationsResponse>
+{% endmacro %}
+
+{% macro get_stream_uri(uri) %}
+<tr2:GetStreamUriResponse><tr2:Uri>{{ uri }}</tr2:Uri></tr2:GetStreamUriResponse>
+{% endmacro %}
+
+{% macro service_capabilities() %}
+<tr2:GetServiceCapabilitiesResponse>
+  <tr2:Capabilities SnapshotUri="false" Rotation="false" VideoSourceMode="false" OSD="false">
+    <tr2:ProfileCapabilities MaximumNumberOfProfiles="1" ConfigurationsSupported="VideoSource VideoEncoder"/>
+    <tr2:StreamingCapabilities RTSPStreaming="true" RTPMulticast="false" RTP_RTSP_TCP="true"/>
+  </tr2:Capabilities>
+</tr2:GetServiceCapabilitiesResponse>
+{% endmacro %}

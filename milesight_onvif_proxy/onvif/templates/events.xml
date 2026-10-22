@@ -1,0 +1,54 @@
+{% macro service_capabilities() %}
+<tev:GetServiceCapabilitiesResponse>
+  <tev:Capabilities WSSubscriptionPolicySupport="false" WSPullPointSupport="true" WSPausableSubscriptionManagerInterfaceSupport="false" MaxNotificationProducers="1" MaxPullPoints="32"/>
+</tev:GetServiceCapabilitiesResponse>
+{% endmacro %}
+
+{% macro create_pullpoint(address, current_time, termination_time) %}
+<tev:CreatePullPointSubscriptionResponse>
+  <tev:SubscriptionReference><wsa:Address>{{ address }}</wsa:Address></tev:SubscriptionReference>
+  <wsnt:CurrentTime>{{ current_time }}</wsnt:CurrentTime>
+  <wsnt:TerminationTime>{{ termination_time }}</wsnt:TerminationTime>
+</tev:CreatePullPointSubscriptionResponse>
+{% endmacro %}
+
+{% macro pull_messages(current_time, termination_time, messages) %}
+<tev:PullMessagesResponse>
+  <tev:CurrentTime>{{ current_time }}</tev:CurrentTime>
+  <tev:TerminationTime>{{ termination_time }}</tev:TerminationTime>
+  {% for m in messages %}
+  <wsnt:NotificationMessage>
+    <wsnt:Topic Dialect="http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet">{{ m.topic }}</wsnt:Topic>
+    <wsnt:Message>
+      <tt:Message UtcTime="{{ m.utc_time }}" PropertyOperation="{{ m.operation }}">
+        <tt:Source><tt:SimpleItem Name="{{ m.source_name }}" Value="{{ m.source_token }}"/></tt:Source>
+        <tt:Data><tt:SimpleItem Name="{{ m.data_name }}" Value="{{ 'true' if m.state else 'false' }}"/></tt:Data>
+      </tt:Message>
+    </wsnt:Message>
+  </wsnt:NotificationMessage>
+  {% endfor %}
+</tev:PullMessagesResponse>
+{% endmacro %}
+
+{% macro renew(current_time, termination_time) %}
+<wsnt:RenewResponse>
+  <wsnt:TerminationTime>{{ termination_time }}</wsnt:TerminationTime>
+  <wsnt:CurrentTime>{{ current_time }}</wsnt:CurrentTime>
+</wsnt:RenewResponse>
+{% endmacro %}
+
+{% macro unsubscribe() %}<wsnt:UnsubscribeResponse/>{% endmacro %}
+
+{% macro set_synchronization_point() %}<tev:SetSynchronizationPointResponse/>{% endmacro %}
+
+{% macro event_properties(topic_set) %}
+<tev:GetEventPropertiesResponse>
+  <tev:TopicNamespaceLocation>http://www.onvif.org/onvif/ver10/topics/topicns.xml</tev:TopicNamespaceLocation>
+  <wsnt:FixedTopicSet>true</wsnt:FixedTopicSet>
+  <wstop:TopicSet>{{ topic_set | safe }}</wstop:TopicSet>
+  <wsnt:TopicExpressionDialect>http://www.onvif.org/ver10/tev/topicExpression/ConcreteSet</wsnt:TopicExpressionDialect>
+  <wsnt:TopicExpressionDialect>http://docs.oasis-open.org/wsn/t-1/TopicExpression/Concrete</wsnt:TopicExpressionDialect>
+  <tev:MessageContentFilterDialect>http://www.onvif.org/ver10/tev/messageContentFilter/ItemFilter</tev:MessageContentFilterDialect>
+  <tev:MessageContentSchemaLocation>http://www.onvif.org/onvif/ver10/schema/onvif.xsd</tev:MessageContentSchemaLocation>
+</tev:GetEventPropertiesResponse>
+{% endmacro %}

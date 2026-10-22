@@ -1,0 +1,86 @@
+{# ONVIF Media (ver10). H.265 channels use Encoding=H265: not in the Media1 schema enum but accepted by most clients; Media2 is the proper route. #}
+{% macro source_config(cam) %}
+<tt:Name>VideoSourceConfig{{ cam.number }}</tt:Name>
+<tt:UseCount>1</tt:UseCount>
+<tt:SourceToken>{{ cam.source_token }}</tt:SourceToken>
+<tt:Bounds x="0" y="0" width="{{ cam.stream.size[0] }}" height="{{ cam.stream.size[1] }}"/>
+{% endmacro %}
+
+{% macro encoder_config(cam) %}
+<tt:Name>VideoEncoderConfig{{ cam.number }}</tt:Name>
+<tt:UseCount>1</tt:UseCount>
+<tt:Encoding>{{ "H265" if cam.codec == "h265" else "H264" }}</tt:Encoding>
+<tt:Resolution><tt:Width>{{ cam.stream.size[0] }}</tt:Width><tt:Height>{{ cam.stream.size[1] }}</tt:Height></tt:Resolution>
+<tt:Quality>5</tt:Quality>
+<tt:RateControl><tt:FrameRateLimit>{{ cam.stream.fps | round | int }}</tt:FrameRateLimit><tt:EncodingInterval>1</tt:EncodingInterval><tt:BitrateLimit>512</tt:BitrateLimit></tt:RateControl>
+{% if cam.codec != "h265" %}
+<tt:H264><tt:GovLength>30</tt:GovLength><tt:H264Profile>Main</tt:H264Profile></tt:H264>
+{% endif %}
+<tt:Multicast><tt:Address><tt:Type>IPv4</tt:Type><tt:IPv4Address>0.0.0.0</tt:IPv4Address></tt:Address><tt:Port>0</tt:Port><tt:TTL>1</tt:TTL><tt:AutoStart>false</tt:AutoStart></tt:Multicast>
+<tt:SessionTimeout>PT60S</tt:SessionTimeout>
+{% endmacro %}
+
+{% macro profile_body(cam) %}
+<tt:Name>{{ cam.name }}</tt:Name>
+<tt:VideoSourceConfiguration token="vsc{{ cam.number }}">{{ source_config(cam) }}</tt:VideoSourceConfiguration>
+<tt:VideoEncoderConfiguration token="vec{{ cam.number }}">{{ encoder_config(cam) }}</tt:VideoEncoderConfiguration>
+{% endmacro %}
+
+{% macro get_profiles(cam) %}
+<trt:GetProfilesResponse>
+  <trt:Profiles token="{{ cam.profile_token }}" fixed="true">{{ profile_body(cam) }}</trt:Profiles>
+</trt:GetProfilesResponse>
+{% endmacro %}
+
+{% macro get_profile(cam) %}
+<trt:GetProfileResponse>
+  <trt:Profile token="{{ cam.profile_token }}" fixed="true">{{ profile_body(cam) }}</trt:Profile>
+</trt:GetProfileResponse>
+{% endmacro %}
+
+{% macro get_video_sources(cam) %}
+<trt:GetVideoSourcesResponse>
+  <trt:VideoSources token="{{ cam.source_token }}">
+    <tt:Framerate>{{ cam.stream.fps }}</tt:Framerate>
+    <tt:Resolution><tt:Width>{{ cam.stream.size[0] }}</tt:Width><tt:Height>{{ cam.stream.size[1] }}</tt:Height></tt:Resolution>
+  </trt:VideoSources>
+</trt:GetVideoSourcesResponse>
+{% endmacro %}
+
+{% macro get_video_source_configurations(cam) %}
+<trt:GetVideoSourceConfigurationsResponse>
+  <trt:Configurations token="vsc{{ cam.number }}">{{ source_config(cam) }}</trt:Configurations>
+</trt:GetVideoSourceConfigurationsResponse>
+{% endmacro %}
+
+{% macro get_video_encoder_configurations(cam) %}
+<trt:GetVideoEncoderConfigurationsResponse>
+  <trt:Configurations token="vec{{ cam.number }}">{{ encoder_config(cam) }}</trt:Configurations>
+</trt:GetVideoEncoderConfigurationsResponse>
+{% endmacro %}
+
+{% macro get_video_encoder_configuration(cam) %}
+<trt:GetVideoEncoderConfigurationResponse>
+  <trt:Configuration token="vec{{ cam.number }}">{{ encoder_config(cam) }}</trt:Configuration>
+</trt:GetVideoEncoderConfigurationResponse>
+{% endmacro %}
+
+{% macro get_stream_uri(uri) %}
+<trt:GetStreamUriResponse>
+  <trt:MediaUri>
+    <tt:Uri>{{ uri }}</tt:Uri>
+    <tt:InvalidAfterConnect>false</tt:InvalidAfterConnect>
+    <tt:InvalidAfterReboot>false</tt:InvalidAfterReboot>
+    <tt:Timeout>PT0S</tt:Timeout>
+  </trt:MediaUri>
+</trt:GetStreamUriResponse>
+{% endmacro %}
+
+{% macro service_capabilities() %}
+<trt:GetServiceCapabilitiesResponse>
+  <trt:Capabilities SnapshotUri="false" Rotation="false" VideoSourceMode="false" OSD="false">
+    <trt:ProfileCapabilities MaximumNumberOfProfiles="1"/>
+    <trt:StreamingCapabilities RTPMulticast="false" RTP_TCP="true" RTP_RTSP_TCP="true"/>
+  </trt:Capabilities>
+</trt:GetServiceCapabilitiesResponse>
+{% endmacro %}
